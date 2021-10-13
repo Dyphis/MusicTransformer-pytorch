@@ -30,6 +30,7 @@ else:
 dataset = Data(config.pickle_dir)
 print(dataset)
 
+
 # load model
 learning_rate = config.l_r
 
