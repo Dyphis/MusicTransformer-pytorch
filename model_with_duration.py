@@ -47,7 +47,7 @@ class MusicTransformer(torch.nn.Module):
             #print('decoder shape:', decoder.shape)
             #fc = decoder
             #print(duration_info.shape)
-            concat_out = torch.cat((decoder, duration_info), 2)
+            concat_out = torch.cat((decoder, duration_info.to(decoder.device)), 2)
             fc = self.fc_combined1(concat_out)
             fc = self.fc_combined2(fc)
             fc = self.fc(fc)
@@ -107,7 +107,7 @@ class MusicTransformer(torch.nn.Module):
             # result, _ = decode_fn(decode_array, look_ahead_mask)
             duration_info = self.duration_record(decode_array)
             result, _ = self.Decoder(decode_array, None)
-            concat_out = torch.cat((result, duration_info), 2)
+            concat_out = torch.cat((result, duration_info.to(result.device)), 2)
             fc = self.fc_combined1(concat_out)
             fc = self.fc_combined2(fc)
             result = self.fc(fc)
