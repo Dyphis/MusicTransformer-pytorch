@@ -107,7 +107,7 @@ class RelativeGlobalAttention(torch.nn.Module):
         out = torch.reshape(out, (out.size(0), -1, self.d))
 
         out = self.fc(out)
-        return out, attention_weights
+        return out#, attention_weights
 
     def _get_left_embedding(self, len_q, len_k):
         starting_point = max(0,self.max_seq-len_q)
@@ -151,7 +151,8 @@ class EncoderLayer(torch.nn.Module):
         self.dropout2 = torch.nn.Dropout(rate)
 
     def forward(self, x, mask=None, **kwargs):
-        attn_out, w = self.rga([x,x,x], mask)
+        #attn_out, w = self.rga([x,x,x], mask)
+        attn_out = self.rga([x,x,x], mask)
         attn_out = self.dropout1(attn_out)
         out1 = self.layernorm1(attn_out+x)
 
@@ -159,7 +160,7 @@ class EncoderLayer(torch.nn.Module):
         ffn_out = self.FFN_suf(ffn_out)
         ffn_out = self.dropout2(ffn_out)
         out2 = self.layernorm2(out1+ffn_out)
-        return out2, w
+        return out2#, w
 
 
 class DecoderLayer(torch.nn.Module):
@@ -183,14 +184,17 @@ class DecoderLayer(torch.nn.Module):
 
     def forward(self, x, encode_out, mask=None, lookup_mask=None, w_out=False, **kwargs):
 
-        attn_out, aw1 = self.rga([x, x, x], mask=lookup_mask)
+        #attn_out, aw1 = self.rga([x, x, x], mask=lookup_mask)
+        attn_out = self.rga([x, x, x], mask=lookup_mask)
         attn_out = self.dropout1(attn_out)
         out1 = self.layernorm1(attn_out+x)
 
         if encode_out is None:
-            attn_out2, aw2 = self.rga2([out1, out1, out1], mask=mask)
+            #attn_out2, aw2 = self.rga2([out1, out1, out1], mask=mask)
+            attn_out2 = self.rga2([out1, out1, out1], mask=mask)
         else:
-            attn_out2, aw2 = self.rga2([out1, encode_out, encode_out], mask=mask)
+            #attn_out2, aw2 = self.rga2([out1, encode_out, encode_out], mask=mask)
+            attn_out2 = self.rga2([out1, encode_out, encode_out], mask=mask)
         attn_out2 = self.dropout2(attn_out2)
         attn_out2 = self.layernorm2(out1+attn_out2)
 
@@ -198,9 +202,10 @@ class DecoderLayer(torch.nn.Module):
         ffn_out = self.FFN_suf(ffn_out)
         ffn_out = self.dropout3(ffn_out)
         out = self.layernorm3(attn_out2+ffn_out)
+        return out
 
         if w_out:
-            return out, aw1, aw2
+            return out#, aw1, aw2
         else:
             return out
 
@@ -229,9 +234,10 @@ class Encoder(torch.nn.Module):
         x = self.pos_encoding(x)
         x = self.dropout(x)
         for i in range(self.num_layers):
-            x, w = self.enc_layers[i](x, mask)
-            weights.append(w)
-        return x, weights # (batch_size, input_seq_len, d_model)
+            x = self.enc_layers[i](x, mask)
+            #x, w = self.enc_layers[i](x, mask)
+            #weights.append(w)
+        return x#, weights # (batch_size, input_seq_len, d_model)
 
 class Decoder(torch.nn.Module):
     def __init__(self, num_layers, d_model, input_vocab_size, rate=0.1, max_len=None):
@@ -257,9 +263,10 @@ class Decoder(torch.nn.Module):
         x = self.pos_encoding(x)
         x = self.dropout(x)
         for i in range(self.num_layers):
-            x, w1, w2 = self.dec_layers[i](x, encode_out, mask, lookup_mask)
-            weights.append([w1, w2])
-        return x, weights # (batch_size, input_seq_len, d_model)
+            x = self.dec_layers[i](x, encode_out, mask, lookup_mask)
+            #x, w1, w2 = self.dec_layers[i](x, encode_out, mask, lookup_mask)
+            #weights.append([w1, w2])
+        return x#, weights # (batch_size, input_seq_len, d_model)
 
 
 # class MusicTransformerDataParallelCriterion(torch.nn.DataParallel):
