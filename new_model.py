@@ -1,6 +1,6 @@
 from custom.layers import *
 from custom.criterion import *
-from custom.layers import Encoder
+from custom.layers import Encoder, Decoder
 from custom.config import config
 
 import sys
@@ -30,19 +30,24 @@ class MusicTransformer(torch.nn.Module):
             self.dist = dist
 
         self.writer = writer
-        self.Decoder = Encoder(
+        self.Encoder = Encoder(
+            num_layers=self.num_layer, d_model=self.embedding_dim,
+            input_vocab_size=self.vocab_size, rate=dropout, max_len=max_seq)
+        self.Decoder = Decoder(
             num_layers=self.num_layer, d_model=self.embedding_dim,
             input_vocab_size=self.vocab_size, rate=dropout, max_len=max_seq)
         self.fc = torch.nn.Linear(self.embedding_dim, self.vocab_size)
 
-    def forward(self, x, length=None, writer=None):
+    def forward(self, src, trg, length=None, writer=None):
         if self.training or not self.infer:
-            _, _, look_ahead_mask = utils.get_masked_with_pad_tensor(self.max_seq, x, x, config.pad_token)
-            decoder, w = self.Decoder(x, mask=look_ahead_mask)
-            fc = self.fc(decoder)
-            return fc.contiguous() if self.training else (fc.contiguous(), [weight.contiguous() for weight in w])
+            src_mask, trg_mask, look_ahead_mask = utils.get_masked_with_pad_tensor(self.max_seq, src, trg, config.pad_token)
+            encode_out, w_encode = self.Encoder(src, mask=src_mask)
+            decode_out, w_decode = self.Decoder(trg, encode_out, mask=trg_mask, lookup_mask=look_ahead_mask)
+            fc = self.fc(decode_out)
+            return fc.contiguous() if self.training else (fc.contiguous(), [weight.contiguous()
+                                        for weight in w_encode], [weight.contiguous() for weight in w_decode])
         else:
-            return self.generate(x, length, None).contiguous().tolist()
+            return self.generate(src, length, None).contiguous().tolist()
 
     def generate(self,
                  prior: torch.Tensor,

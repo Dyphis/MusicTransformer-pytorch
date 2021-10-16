@@ -88,7 +88,7 @@ for e in range(config.epochs):
 
         start_time = time.time()
         mt.train()
-        sample = mt.forward(batch_x)
+        sample = mt.forward(batch_x, batch_y)
         metrics = metric_set(sample, batch_y)
         loss = metrics['loss']
         loss.backward()
