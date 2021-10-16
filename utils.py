@@ -66,8 +66,10 @@ def get_masked_with_pad_tensor(size, src, trg, pad_token):
     src = src[:, None, None, :]
     trg = trg[:, None, None, :]
     src_pad_tensor = torch.ones_like(src).to(src.device.type) * pad_token
-    src_mask = torch.equal(src, src_pad_tensor)
-    trg_mask = torch.equal(src, src_pad_tensor)
+    #src_mask = torch.equal(src, src_pad_tensor)
+    #trg_mask = torch.equal(src, src_pad_tensor)
+    src_mask = src == src_pad_tensor
+    trg_mask = trg == src_pad_tensor
     if trg is not None:
         trg_pad_tensor = torch.ones_like(trg).to(trg.device.type) * pad_token
         dec_trg_mask = trg == trg_pad_tensor

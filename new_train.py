@@ -13,7 +13,6 @@ import torch
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 
-
 # set config
 parser = custom.get_argument_parser()
 args = parser.parse_args()
@@ -25,23 +24,21 @@ if torch.cuda.is_available():
 else:
     config.device = torch.device('cpu')
 
-
 # load data
 dataset = Data(config.pickle_dir)
 print(dataset)
-
 
 # load model
 learning_rate = config.l_r
 
 # define model
 mt = MusicTransformer(
-            embedding_dim=config.embedding_dim,
-            vocab_size=config.vocab_size,
-            num_layer=config.num_layers,
-            max_seq=config.max_seq,
-            dropout=config.dropout,
-            debug=config.debug, loader_path=config.load_path
+    embedding_dim=config.embedding_dim,
+    vocab_size=config.vocab_size,
+    num_layer=config.num_layers,
+    max_seq=config.max_seq,
+    dropout=config.dropout,
+    debug=config.debug, loader_path=config.load_path
 )
 mt.to(config.device)
 opt = optim.Adam(mt.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)
@@ -50,7 +47,7 @@ scheduler = CustomSchedule(config.embedding_dim, optimizer=opt)
 # multi-GPU set
 if torch.cuda.device_count() > 1:
     single_mt = mt
-    mt = torch.nn.DataParallel(mt, output_device=torch.cuda.device_count()-1)
+    mt = torch.nn.DataParallel(mt, output_device=torch.cuda.device_count() - 1)
 else:
     single_mt = mt
 
@@ -58,7 +55,7 @@ else:
 metric_set = MetricsSet({
     'accuracy': CategoricalAccuracy(),
     'loss': SmoothCrossEntropyLoss(config.label_smooth, config.vocab_size, config.pad_token),
-    'bucket':  LogitsBucketting(config.vocab_size)
+    'bucket': LogitsBucketting(config.vocab_size)
 })
 
 print(mt)
@@ -66,8 +63,8 @@ print('| Summary - Device Info : {}'.format(torch.cuda.device))
 
 # define tensorboard writer
 current_time = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
-train_log_dir = 'logs/'+config.experiment+'/'+current_time+'/train'
-eval_log_dir = 'logs/'+config.experiment+'/'+current_time+'/eval'
+train_log_dir = 'logs/' + config.experiment + '/' + current_time + '/train'
+eval_log_dir = 'logs/' + config.experiment + '/' + current_time + '/eval'
 
 train_summary_writer = SummaryWriter(train_log_dir)
 eval_summary_writer = SummaryWriter(eval_log_dir)
@@ -79,16 +76,17 @@ for e in range(config.epochs):
     print(">>> [Epoch was updated]")
     for b in range(len(dataset.files) // config.batch_size):
         scheduler.optimizer.zero_grad()
+
         try:
             batch_x, batch_y = dataset.slide_seq2seq_batch(config.batch_size, config.max_seq)
             batch_x = torch.from_numpy(batch_x).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
             batch_y = torch.from_numpy(batch_y).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
         except IndexError:
             continue
-
         start_time = time.time()
         mt.train()
         sample = mt.forward(batch_x, batch_y)
+
         metrics = metric_set(sample, batch_y)
         loss = metrics['loss']
         loss.backward()
@@ -101,7 +99,7 @@ for e in range(config.epochs):
         train_summary_writer.add_scalar('loss', metrics['loss'], global_step=idx)
         train_summary_writer.add_scalar('accuracy', metrics['accuracy'], global_step=idx)
         train_summary_writer.add_scalar('learning_rate', scheduler.rate(), global_step=idx)
-        train_summary_writer.add_scalar('iter_p_sec', end_time-start_time, global_step=idx)
+        train_summary_writer.add_scalar('iter_p_sec', end_time - start_time, global_step=idx)
 
         # result_metrics = metric_set(sample, batch_y)
         if b % 100 == 0:
@@ -110,17 +108,18 @@ for e in range(config.epochs):
             eval_x = torch.from_numpy(eval_x).contiguous().to(config.device, dtype=torch.int)
             eval_y = torch.from_numpy(eval_y).contiguous().to(config.device, dtype=torch.int)
 
-            eval_preiction, weights = single_mt.forward(eval_x)
+            # eval_preiction, weights = single_mt.forward(eval_x, eval_y)
+            eval_preiction = single_mt.forward(eval_x, eval_y)
 
             eval_metrics = metric_set(eval_preiction, eval_y)
-            torch.save(single_mt.state_dict(), args.model_dir+'/train-{}.pth'.format(e))
+            torch.save(single_mt.state_dict(), args.model_dir + '/train-{}.pth'.format(e))
             if b == 0:
                 train_summary_writer.add_histogram("target_analysis", batch_y, global_step=e)
                 train_summary_writer.add_histogram("source_analysis", batch_x, global_step=e)
-                for i, weight in enumerate(weights):
-                    attn_log_name = "attn/layer-{}".format(i)
-                    utils.attention_image_summary(
-                        attn_log_name, weight, step=idx, writer=eval_summary_writer)
+                # for i, weight in enumerate(weights):
+                # attn_log_name = "attn/layer-{}".format(i)
+                # utils.attention_image_summary(
+                # attn_log_name, weight, step=idx, writer=eval_summary_writer)
 
             eval_summary_writer.add_scalar('loss', eval_metrics['loss'], global_step=idx)
             eval_summary_writer.add_scalar('accuracy', eval_metrics['accuracy'], global_step=idx)
@@ -136,12 +135,12 @@ for e in range(config.epochs):
         # switch output device to: gpu-1 ~ gpu-n
         sw_start = time.time()
         if torch.cuda.device_count() > 1:
-            mt.output_device = idx % (torch.cuda.device_count() -1) + 1
+            mt.output_device = idx % (torch.cuda.device_count() - 1) + 1
         sw_end = time.time()
         if config.debug:
-            print('output switch time: {}'.format(sw_end - sw_start) )
+            print('output switch time: {}'.format(sw_end - sw_start))
 
-torch.save(single_mt.state_dict(), args.model_dir+'/final.pth'.format(idx))
+torch.save(single_mt.state_dict(), args.model_dir + '/final.pth'.format(idx))
 eval_summary_writer.close()
 train_summary_writer.close()
 

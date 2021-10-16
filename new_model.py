@@ -41,11 +41,13 @@ class MusicTransformer(torch.nn.Module):
     def forward(self, src, trg, length=None, writer=None):
         if self.training or not self.infer:
             src_mask, trg_mask, look_ahead_mask = utils.get_masked_with_pad_tensor(self.max_seq, src, trg, config.pad_token)
-            encode_out, w_encode = self.Encoder(src, mask=src_mask)
-            decode_out, w_decode = self.Decoder(trg, encode_out, mask=trg_mask, lookup_mask=look_ahead_mask)
+            #encode_out, w_encode = self.Encoder(src, mask=src_mask)
+            #decode_out, w_decode = self.Decoder(trg, encode_out, mask=trg_mask, lookup_mask=look_ahead_mask)
+            encode_out = self.Encoder(src, mask=src_mask)
+            decode_out = self.Decoder(trg, encode_out, mask=trg_mask, lookup_mask=look_ahead_mask)
             fc = self.fc(decode_out)
-            return fc.contiguous() if self.training else (fc.contiguous(), [weight.contiguous()
-                                        for weight in w_encode], [weight.contiguous() for weight in w_decode])
+            return fc.contiguous() #if self.training else (fc.contiguous(), [weight.contiguous()
+                                        #for weight in w_encode], [weight.contiguous() for weight in w_decode])
         else:
             return self.generate(src, length, None).contiguous().tolist()
 
