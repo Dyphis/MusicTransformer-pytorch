@@ -44,7 +44,8 @@ if config.condition_file is not None:
 else:
     inputs = np.array([[24, 28, 31]])
 inputs = torch.from_numpy(inputs)
-result = mt(inputs, config.length, gen_summary_writer)
+#result = mt(inputs, config.length, gen_summary_writer)
+result = mt(inputs, inputs, config.length, gen_summary_writer)
 
 for i in result:
     print(i)

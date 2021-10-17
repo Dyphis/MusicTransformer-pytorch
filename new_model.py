@@ -62,7 +62,7 @@ class MusicTransformer(torch.nn.Module):
         for i in Bar('generating').iter(range(length)):
             if decode_array.size(1) >= config.threshold_len:
                 decode_array = decode_array[:, 1:]
-            _, _, look_ahead_mask = \
+            src_mask, trg_mask, look_ahead_mask = \
                 utils.get_masked_with_pad_tensor(decode_array.size(1), decode_array, decode_array, pad_token=config.pad_token)
 
             # result, _ = self.forward(decode_array, lookup_mask=look_ahead_mask)
