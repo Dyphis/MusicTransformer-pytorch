@@ -76,6 +76,7 @@ print(">> Train start...")
 idx = 0
 for e in range(config.epochs):
     print(">>> [Epoch was updated]")
+    sw_start = time.time()
     for b in range(len(dataset.files) // config.batch_size):
         scheduler.optimizer.zero_grad()
         try:
@@ -109,17 +110,18 @@ for e in range(config.epochs):
             eval_x = torch.from_numpy(eval_x).contiguous().to(config.device, dtype=torch.int)
             eval_y = torch.from_numpy(eval_y).contiguous().to(config.device, dtype=torch.int)
 
-            eval_preiction, weights = single_mt.forward(eval_x)
+            #eval_preiction, weights = single_mt.forward(eval_x)
+            eval_preiction = single_mt.forward(eval_x)
 
             eval_metrics = metric_set(eval_preiction, eval_y)
             torch.save(single_mt.state_dict(), args.model_dir+'/train-{}.pth'.format(e))
             if b == 0:
                 train_summary_writer.add_histogram("target_analysis", batch_y, global_step=e)
                 train_summary_writer.add_histogram("source_analysis", batch_x, global_step=e)
-                for i, weight in enumerate(weights):
-                    attn_log_name = "attn/layer-{}".format(i)
-                    utils.attention_image_summary(
-                        attn_log_name, weight, step=idx, writer=eval_summary_writer)
+                #for i, weight in enumerate(weights):
+                    #attn_log_name = "attn/layer-{}".format(i)
+                    #utils.attention_image_summary(
+                        #attn_log_name, weight, step=idx, writer=eval_summary_writer)
 
             eval_summary_writer.add_scalar('loss', eval_metrics['loss'], global_step=idx)
             eval_summary_writer.add_scalar('accuracy', eval_metrics['accuracy'], global_step=idx)
@@ -133,12 +135,11 @@ for e in range(config.epochs):
         idx += 1
 
         # switch output device to: gpu-1 ~ gpu-n
-        sw_start = time.time()
-        if torch.cuda.device_count() > 1:
-            mt.output_device = idx % (torch.cuda.device_count() -1) + 1
-        sw_end = time.time()
-        if config.debug:
-            print('output switch time: {}'.format(sw_end - sw_start) )
+        #if torch.cuda.device_count() > 1:
+            #mt.output_device = idx % (torch.cuda.device_count() -1) + 1
+    sw_end = time.time()
+        #if config.debug:
+    print('epoch time: {}'.format(sw_end - sw_start) )
 
 torch.save(single_mt.state_dict(), args.model_dir+'/final.pth'.format(idx))
 eval_summary_writer.close()
