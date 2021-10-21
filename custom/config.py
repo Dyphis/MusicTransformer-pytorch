@@ -92,7 +92,7 @@ class MusicTransformerConfig(Config):
         self.pad_token = self.event_dim
         self.token_sos = self.event_dim + 1
         self.token_eos = self.event_dim + 2
-        self.vocab_size = self.event_dim + 3
+        self.vocab_size = self.event_dim
 
 
 config = MusicTransformerConfig('save.yml')

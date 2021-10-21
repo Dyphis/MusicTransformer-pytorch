@@ -31,8 +31,8 @@ def event_indeces_to_midi_file(event_indeces, midi_file_name, velocity_scale=0.8
     return len(note_seq.notes)
 
 
-def dict2params(d, f=','):
-    return f.join(f'{k}={v}' for k, v in d.items())
+#def dict2params(d, f=','):
+    #return f.join(f'{k}={v}' for k, v in d.items())
 
 
 def params2dict(p, f=',', e='='):
