@@ -19,7 +19,7 @@ class Data:
         pass
 
     def __repr__(self):
-        return '<class Data has "'+str(len(self.files))+'" files>'
+        return '<class Data has "' + str(len(self.files)) + '" files>'
 
     def batch(self, batch_size, length, mode='train'):
 
@@ -39,12 +39,12 @@ class Data:
 
     def smallest_encoder_batch(self, batch_size, length, mode='train'):
         data = self.batch(batch_size, length * 2, mode)
-        x = data[:, :length//100]
-        y = data[:, length//100:length//100+length]
+        x = data[:, :length // 100]
+        y = data[:, length // 100:length // 100 + length]
         return x, y
 
     def slide_seq2seq_batch(self, batch_size, length, mode='train'):
-        data = self.batch(batch_size, length+1, mode)
+        data = self.batch(batch_size, length + 1, mode)
         x = data[:, :-1]
         y = data[:, 1:]
         return x, y
@@ -55,7 +55,7 @@ class Data:
         for i in range(batch_size):
             data = self._get_seq(batch_files[i])
             for j in range(len(data) - length):
-                batch_data.append(data[j:j+length])
+                batch_data.append(data[j:j + length])
                 if len(batch_data) == batch_size:
                     return batch_data
 
@@ -81,7 +81,7 @@ class Data:
             data = pickle.load(f)
         if max_length is not None:
             if max_length <= len(data):
-                start = random.randrange(0,len(data) - max_length)
+                start = random.randrange(0, len(data) - max_length)
                 data = data[start:start + max_length]
             else:
                 raise IndexError
@@ -106,7 +106,7 @@ class PositionalY:
         return '<Label located in {} position.>'.format(self.idx)
 
 
-def add_noise(inputs: np.array, rate:float = 0.01): # input's dim is 2
+def add_noise(inputs: np.array, rate: float = 0.01):  # input's dim is 2
     seq_length = np.shape(inputs)[-1]
 
     num_mask = int(rate * seq_length)
@@ -117,8 +117,43 @@ def add_noise(inputs: np.array, rate:float = 0.01): # input's dim is 2
     return inputs
 
 
+def transposition(batch_data: np.array, random_transposition: list = [], batch_first: bool = True):
+    """
+    Return twice size
+    """
+
+    def range_check(event, min_bound, max_bound, change):
+        if (event + change) in range(min_bound, max_bound):
+            return event + change
+        else:
+            return event
+
+    if batch_first == True:
+        if random_transposition == []:
+            random_transposition = [random.sample([-3, -2, -1, 1, 2, 3], 1)[0] for _ in range(batch_data.shape[0])]
+        for sequence in range(batch_data.shape[0]):
+            new_data = []
+            for event in batch_data[sequence]:
+                if event in range(0, 128):  # note-on
+                    new_data.append(range_check(event, 0, 128, random_transposition[sequence]))
+                elif event in range(128, 256):  # note-off
+                    new_data.append(range_check(event, 128, 256, random_transposition[sequence]))
+                if event in range(256, 388):  # time-shift and velocity
+                    new_data.append(event)
+            batch_data = np.vstack([batch_data, new_data])
+        return batch_data, random_transposition
+
+
+def train_test_transposition(batch_x: np.array, batch_y: np.array, batch_first=True):
+    batch_x, rand_transposition = transposition(batch_x)
+    batch_y, _ = transposition(batch_y, rand_transposition)
+    return batch_x, batch_y
+
+
 if __name__ == '__main__':
     import pprint
+
+
     def count_dict(max_length, data):
         cnt_arr = [0] * max_length
         cnt_dict = {}
@@ -131,7 +166,7 @@ if __name__ == '__main__':
                 except:
                     print(index)
                 try:
-                    cnt_dict['index-'+str(index)] += 1
+                    cnt_dict['index-' + str(index)] += 1
                 except KeyError:
-                    cnt_dict['index-'+str(index)] = 1
+                    cnt_dict['index-' + str(index)] = 1
         return cnt_arr

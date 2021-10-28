@@ -1,4 +1,4 @@
 save_path: 'midi_processor/bin/generated.mid'
-condition_file:
-length: 4000
+condition_file: 'chan01.mid'
+length: 1000
 threshold_len: 500

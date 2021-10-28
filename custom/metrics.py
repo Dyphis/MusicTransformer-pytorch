@@ -25,8 +25,34 @@ class Accuracy(_Metric):
         :param target: [B, L]
         :return:
         """
-        bool_acc = input.long() == target.long()
-        return bool_acc.sum().to(torch.float) / bool_acc.numel()
+        # total accuracy
+        bool_acc = input.long() == target.long()  # total accuracy
+
+        # note-on accuracy
+        on_temp = input.clone()
+        on_temp = (on_temp > 127) * -999 + on_temp
+        on_state_acc = on_temp.long() == target.long()
+
+        # onte-off accuracy
+        off_temp = input.clone()
+        off_temp = (off_temp < 128) * -999 + (off_temp > 255) * -999 + off_temp
+        off_state_acc = off_temp.long() == target.long()
+
+        # time-shift accuracy
+        time_temp = input.clone()
+        time_temp = (time_temp < 256) * -999 + (time_temp > 355) * -999 + time_temp
+        time_shift_acc = time_temp.long() == target.long()
+
+        # note-on accuracy
+        velocity_temp = input.clone()
+        velocity_temp = (velocity_temp < 356) * -999 + velocity_temp
+        velocity_acc = velocity_temp.long() == target.long()
+
+        return [bool_acc.sum().to(torch.float) / bool_acc.numel(),
+                on_state_acc.sum().to(torch.float) / on_state_acc.numel(),
+                off_state_acc.sum().to(torch.float) / off_state_acc.numel(),
+                time_shift_acc.sum().to(torch.float) / time_shift_acc.numel(),
+                velocity_acc.sum().to(torch.float) / velocity_acc.numel()]
 
 
 class MockAccuracy(Accuracy):
@@ -89,7 +115,7 @@ class ParallelMetricSet(MetricsSet):
 
 if __name__ == '__main__':
     met = MockAccuracy()
-    test_tensor1 = torch.ones((3,2)).contiguous().cuda().to(non_blocking=True, dtype=torch.int)
-    test_tensor2 = torch.ones((3,2)).contiguous().cuda().to(non_blocking=True, dtype=torch.int)
-    test_tensor3 = torch.zeros((3,2))
+    test_tensor1 = torch.ones((3, 2)).contiguous().cuda().to(non_blocking=True, dtype=torch.int)
+    test_tensor2 = torch.ones((3, 2)).contiguous().cuda().to(non_blocking=True, dtype=torch.int)
+    test_tensor3 = torch.zeros((3, 2))
     print(met(test_tensor1, test_tensor2))

@@ -38,9 +38,10 @@ class MusicTransformer(torch.nn.Module):
     def forward(self, x, length=None, writer=None):
         if self.training or not self.infer:
             _, _, look_ahead_mask = utils.get_masked_with_pad_tensor(self.max_seq, x, x, config.pad_token)
-            decoder, w = self.Decoder(x, mask=look_ahead_mask)
+            #decoder, w = self.Decoder(x, mask=look_ahead_mask)
+            decoder = self.Decoder(x, mask=look_ahead_mask)
             fc = self.fc(decoder)
-            return fc.contiguous() if self.training else (fc.contiguous(), [weight.contiguous() for weight in w])
+            return fc.contiguous()# if self.training else (fc.contiguous(), [weight.contiguous() for weight in w])
         else:
             return self.generate(x, length, None).contiguous().tolist()
 
@@ -60,7 +61,8 @@ class MusicTransformer(torch.nn.Module):
 
             # result, _ = self.forward(decode_array, lookup_mask=look_ahead_mask)
             # result, _ = decode_fn(decode_array, look_ahead_mask)
-            result, _ = self.Decoder(decode_array, None)
+            #result, _ = self.Decoder(decode_array, None)
+            result = self.Decoder(decode_array, None)
             result = self.fc(result)
             result = result.softmax(-1)
 

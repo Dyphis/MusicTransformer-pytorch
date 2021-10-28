@@ -3,7 +3,7 @@ import custom
 from custom.metrics import *
 from custom.criterion import SmoothCrossEntropyLoss, CustomSchedule
 from custom.config import config
-from data import Data
+from data import Data, train_test_transposition
 
 import utils
 import datetime
@@ -77,10 +77,11 @@ idx = 0
 for e in range(config.epochs):
     print(">>> [Epoch was updated]")
     sw_start = time.time()
-    for b in range(len(dataset.files) // config.batch_size):
+    for b in range(len(dataset.files) // (config.batch_size // 2)):
         scheduler.optimizer.zero_grad()
         try:
-            batch_x, batch_y = dataset.slide_seq2seq_batch(config.batch_size, config.max_seq)
+            batch_x, batch_y = dataset.slide_seq2seq_batch(config.batch_size//2, config.max_seq)
+            batch_x, batch_y = train_test_transposition(batch_x, batch_y)
             batch_x = torch.from_numpy(batch_x).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
             batch_y = torch.from_numpy(batch_y).contiguous().to(config.device, non_blocking=True, dtype=torch.int)
         except IndexError:
@@ -99,7 +100,11 @@ for e in range(config.epochs):
             print("[Loss]: {}".format(loss))
 
         train_summary_writer.add_scalar('loss', metrics['loss'], global_step=idx)
-        train_summary_writer.add_scalar('accuracy', metrics['accuracy'], global_step=idx)
+        train_summary_writer.add_scalar('accuracy', metrics['accuracy'][0], global_step=idx)
+        train_summary_writer.add_scalar('on_state_accuracy', metrics['accuracy'][1], global_step=idx)
+        train_summary_writer.add_scalar('off_state_accuracy', metrics['accuracy'][2], global_step=idx)
+        train_summary_writer.add_scalar('time_shift_accuracy', metrics['accuracy'][3], global_step=idx)
+        train_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
         train_summary_writer.add_scalar('learning_rate', scheduler.rate(), global_step=idx)
         train_summary_writer.add_scalar('iter_p_sec', end_time-start_time, global_step=idx)
 
@@ -110,8 +115,7 @@ for e in range(config.epochs):
             eval_x = torch.from_numpy(eval_x).contiguous().to(config.device, dtype=torch.int)
             eval_y = torch.from_numpy(eval_y).contiguous().to(config.device, dtype=torch.int)
 
-            #eval_preiction, weights = single_mt.forward(eval_x)
-            eval_preiction = single_mt.forward(eval_x)
+            eval_preiction, weights = single_mt.forward(eval_x)
 
             eval_metrics = metric_set(eval_preiction, eval_y)
             torch.save(single_mt.state_dict(), args.model_dir+'/train-{}.pth'.format(e))
@@ -124,7 +128,12 @@ for e in range(config.epochs):
                         #attn_log_name, weight, step=idx, writer=eval_summary_writer)
 
             eval_summary_writer.add_scalar('loss', eval_metrics['loss'], global_step=idx)
-            eval_summary_writer.add_scalar('accuracy', eval_metrics['accuracy'], global_step=idx)
+            #eval_summary_writer.add_scalar('accuracy', eval_metrics['accuracy'], global_step=idx)
+            eval_summary_writer.add_scalar('accuracy', metrics['accuracy'][0], global_step=idx)
+            eval_summary_writer.add_scalar('on_state_accuracy', metrics['accuracy'][1], global_step=idx)
+            eval_summary_writer.add_scalar('off_state_accuracy', metrics['accuracy'][2], global_step=idx)
+            eval_summary_writer.add_scalar('time_shift_accuracy', metrics['accuracy'][3], global_step=idx)
+            eval_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
             eval_summary_writer.add_histogram("logits_bucket", eval_metrics['bucket'], global_step=idx)
 
             print('\n====================================================')
@@ -135,6 +144,7 @@ for e in range(config.epochs):
         idx += 1
 
         # switch output device to: gpu-1 ~ gpu-n
+        #
         #if torch.cuda.device_count() > 1:
             #mt.output_device = idx % (torch.cuda.device_count() -1) + 1
     sw_end = time.time()
