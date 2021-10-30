@@ -32,27 +32,31 @@ class Accuracy(_Metric):
         on_temp = input.clone()
         on_temp = (on_temp > 127) * -999 + on_temp
         on_state_acc = on_temp.long() == target.long()
+        on_total = (target > 127).to(torch.float)
 
         # onte-off accuracy
         off_temp = input.clone()
         off_temp = (off_temp < 128) * -999 + (off_temp > 255) * -999 + off_temp
         off_state_acc = off_temp.long() == target.long()
+        off_total = (target < 128).to(torch.float) + (target > 255).to(torch.float)
 
         # time-shift accuracy
         time_temp = input.clone()
         time_temp = (time_temp < 256) * -999 + (time_temp > 355) * -999 + time_temp
         time_shift_acc = time_temp.long() == target.long()
+        time_shift_total = (target < 256).to(torch.float) + (target > 355).to(torch.float)
 
         # note-on accuracy
         velocity_temp = input.clone()
         velocity_temp = (velocity_temp < 356) * -999 + velocity_temp
         velocity_acc = velocity_temp.long() == target.long()
+        velocity_total = (target < 356).to(torch.float)
 
         return [bool_acc.sum().to(torch.float) / bool_acc.numel(),
-                on_state_acc.sum().to(torch.float) / on_state_acc.numel(),
-                off_state_acc.sum().to(torch.float) / off_state_acc.numel(),
-                time_shift_acc.sum().to(torch.float) / time_shift_acc.numel(),
-                velocity_acc.sum().to(torch.float) / velocity_acc.numel()]
+                on_state_acc.sum().to(torch.float) / on_total,
+                off_state_acc.sum().to(torch.float) / off_total,
+                time_shift_acc.sum().to(torch.float) / time_shift_total,
+                velocity_acc.sum().to(torch.float) / velocity_total]
 
 
 class MockAccuracy(Accuracy):
