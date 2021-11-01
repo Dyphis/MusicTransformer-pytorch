@@ -39,6 +39,7 @@ class SmoothCrossEntropyLoss(_Loss):
         self.vocab_size = vocab_size
         self.ignore_index = ignore_index
         self.input_is_logits = is_logits
+        self.weighted = True
 
     def forward(self, input, target):
         """
@@ -54,7 +55,15 @@ class SmoothCrossEntropyLoss(_Loss):
         q_prime = (1.0 - self.label_smoothing) * q + self.label_smoothing * u
         q_prime = q_prime.masked_fill(mask, 0)
 
-        ce = self.cross_entropy_with_logits(q_prime, input)
+        if self.weighted:
+            count = torch.stack(q.split(q.shape[1])).sum(dim=0).sum(dim=1)
+            weights = torch.max(count, dim=1)[0][:, None] * torch.ones(count.shape) / count
+            weights[weights == float("Inf")] = 0
+            ce = self.weighted_cross_entropy_with_logits(q_prime, input, weights)
+            ce = self.cross_entropy_with_logits(q_prime, input)
+        else:
+            ce = self.cross_entropy_with_logits(q_prime, input)
+        # print(q_prime.shape)
         if self.reduction == 'mean':
             lengths = torch.sum(target != self.ignore_index)
             return ce.sum() / lengths
@@ -64,7 +73,15 @@ class SmoothCrossEntropyLoss(_Loss):
             raise NotImplementedError
 
     def cross_entropy_with_logits(self, p, q):
-        return -torch.sum(p * (q - q.logsumexp(dim=-1, keepdim=True)), dim=-1)
+        a = p * (q - q.logsumexp(dim=-1, keepdim=True))
+        print('unweighted:', a)
+        return -torch.sum(a, dim=-1)
+
+    def weighted_cross_entropy_with_logits(self, p, q, weights):
+        a = p * (q - q.logsumexp(dim=-1, keepdim=True))
+        a = a * weights[:, None, :]
+        print('weighted:', a)
+        return -torch.sum(a, dim=-1)
 
 
 class CustomSchedule:
