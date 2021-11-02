@@ -69,10 +69,11 @@ class MusicTransformer(torch.nn.Module):
             if tf_board_writer:
                 tf_board_writer.add_image("logits", result, global_step=i)
 
-            u = 0
+            u = 2
             if u > 1:
                 result = result[:, -1].argmax(-1).to(decode_array.dtype)
                 decode_array = torch.cat((decode_array, result.unsqueeze(-1)), -1)
+                result_array = torch.cat((result_array, result.unsqueeze(-1)), -1)
             else:
                 pdf = dist.OneHotCategorical(probs=result[:, -1])
                 result = pdf.sample().argmax(-1).unsqueeze(-1)
