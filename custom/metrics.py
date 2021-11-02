@@ -46,7 +46,7 @@ class Accuracy(_Metric):
         time_shift_acc = time_temp.long() == target.long()
         time_shift_total = bool_acc.numel() - (target < 256).sum().to(torch.float) - (target > 355).sum().to(torch.float)
 
-        # note-on accuracy
+        # velocity accuracy
         velocity_temp = input.clone()
         velocity_temp = (velocity_temp < 356) * -999 + velocity_temp
         velocity_acc = velocity_temp.long() == target.long()

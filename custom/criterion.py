@@ -57,10 +57,10 @@ class SmoothCrossEntropyLoss(_Loss):
 
         if self.weighted:
             count = torch.stack(q.split(q.shape[1])).sum(dim=0).sum(dim=1)
-            weights = torch.max(count, dim=1)[0][:, None] * torch.ones(count.shape) / count
+            weights = torch.max(count, dim=1)[0][:, None] * torch.ones(count.shape).to(count.device) / count
+            weights = weights.log() + 1
             weights[weights == float("Inf")] = 0
             ce = self.weighted_cross_entropy_with_logits(q_prime, input, weights)
-            ce = self.cross_entropy_with_logits(q_prime, input)
         else:
             ce = self.cross_entropy_with_logits(q_prime, input)
         # print(q_prime.shape)
@@ -74,13 +74,11 @@ class SmoothCrossEntropyLoss(_Loss):
 
     def cross_entropy_with_logits(self, p, q):
         a = p * (q - q.logsumexp(dim=-1, keepdim=True))
-        print('unweighted:', a)
         return -torch.sum(a, dim=-1)
 
     def weighted_cross_entropy_with_logits(self, p, q, weights):
         a = p * (q - q.logsumexp(dim=-1, keepdim=True))
         a = a * weights[:, None, :]
-        print('weighted:', a)
         return -torch.sum(a, dim=-1)
 
 
