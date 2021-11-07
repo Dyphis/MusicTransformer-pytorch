@@ -47,16 +47,16 @@ class Accuracy(_Metric):
         time_shift_total = bool_acc.numel() - (target < 256).sum().to(torch.float) - (target > 355).sum().to(torch.float)
 
         # velocity accuracy
-        velocity_temp = input.clone()
-        velocity_temp = (velocity_temp < 356) * -999 + velocity_temp
-        velocity_acc = velocity_temp.long() == target.long()
-        velocity_total = bool_acc.numel() - (target < 356).sum().to(torch.float)
+        #velocity_temp = input.clone()
+        #velocity_temp = (velocity_temp < 356) * -999 + velocity_temp
+        #velocity_acc = velocity_temp.long() == target.long()
+        #velocity_total = bool_acc.numel() - (target < 356).sum().to(torch.float)
 
         return [bool_acc.sum().to(torch.float) / bool_acc.numel(),
                 on_state_acc.sum().to(torch.float) / on_total,
                 off_state_acc.sum().to(torch.float) / off_total,
-                time_shift_acc.sum().to(torch.float) / time_shift_total,
-                velocity_acc.sum().to(torch.float) / velocity_total]
+                time_shift_acc.sum().to(torch.float) / time_shift_total]#,
+                #velocity_acc.sum().to(torch.float) / velocity_total]
 
 
 class MockAccuracy(Accuracy):

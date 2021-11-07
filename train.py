@@ -20,10 +20,10 @@ args = parser.parse_args()
 config.load(args.model_dir, args.configs, initialize=True)
 
 # check cuda
-if torch.cuda.is_available():
-    config.device = torch.device('cuda')
-else:
-    config.device = torch.device('cpu')
+#if torch.cuda.is_available():
+#    config.device = torch.device('cuda')
+#else:
+config.device = torch.device('cpu')
 
 
 # load data
@@ -47,11 +47,11 @@ opt = optim.Adam(mt.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)
 scheduler = CustomSchedule(config.embedding_dim, optimizer=opt)
 
 # multi-GPU set
-if torch.cuda.device_count() > 1:
-    single_mt = mt
-    mt = torch.nn.DataParallel(mt, output_device=torch.cuda.device_count()-1)
-else:
-    single_mt = mt
+#if torch.cuda.device_count() > 1:
+#    single_mt = mt
+#    mt = torch.nn.DataParallel(mt, output_device=torch.cuda.device_count()-1)
+#else:
+single_mt = mt
 
 # init metric set
 metric_set = MetricsSet({
@@ -104,7 +104,7 @@ for e in range(config.epochs):
         train_summary_writer.add_scalar('on_state_accuracy', metrics['accuracy'][1], global_step=idx)
         train_summary_writer.add_scalar('off_state_accuracy', metrics['accuracy'][2], global_step=idx)
         train_summary_writer.add_scalar('time_shift_accuracy', metrics['accuracy'][3], global_step=idx)
-        train_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
+        #train_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
         train_summary_writer.add_scalar('learning_rate', scheduler.rate(), global_step=idx)
         train_summary_writer.add_scalar('iter_p_sec', end_time-start_time, global_step=idx)
 
@@ -133,7 +133,7 @@ for e in range(config.epochs):
             eval_summary_writer.add_scalar('on_state_accuracy', metrics['accuracy'][1], global_step=idx)
             eval_summary_writer.add_scalar('off_state_accuracy', metrics['accuracy'][2], global_step=idx)
             eval_summary_writer.add_scalar('time_shift_accuracy', metrics['accuracy'][3], global_step=idx)
-            eval_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
+            #eval_summary_writer.add_scalar('velocity_accuracy', metrics['accuracy'][4], global_step=idx)
             eval_summary_writer.add_histogram("logits_bucket", eval_metrics['bucket'], global_step=idx)
 
             print('\n====================================================')

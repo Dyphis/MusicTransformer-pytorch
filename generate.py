@@ -40,11 +40,12 @@ mt.test()
 
 print(config.condition_file)
 if config.condition_file is not None:
-    inputs = np.array([encode_midi('dataset/midi/chan01.mid')[:500]])
+    inputs = np.array([encode_midi('MusicTransformer-pytorch/dataset/midi/MarioTheme.mid')[:256]])
+    ground_truth = np.array([encode_midi('MusicTransformer-pytorch/dataset/midi/MarioTheme.mid')[:1500]])
 else:
     inputs = np.array([[24, 28, 31]])
 inputs = torch.from_numpy(inputs)
-result = mt(inputs, config.length, gen_summary_writer)
+result = mt(inputs, config.length, ground_truth)
 
 for i in result:
     print(i)

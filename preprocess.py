@@ -26,10 +26,11 @@ def preprocess_midi_files_under(midi_root, save_dir):
         except EOFError:
             print('EOF Error')
             return
+        for i in range(len(data) - 1025):
 
-        with open('{}/{}.pickle'.format(save_dir, path.split('/')[-1]), 'wb') as f:
-            pickle.dump(data, f)
-
+            with open('{}/{}{}.pickle'.format(save_dir, path.split('/')[-1], i), 'wb') as f:
+                pickle.dump(data[i:i+1025], f)
+            print('Piece {} generated.'.format(i))  
 
 if __name__ == '__main__':
     preprocess_midi_files_under(
