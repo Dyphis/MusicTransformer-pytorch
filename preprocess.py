@@ -30,7 +30,7 @@ def preprocess_midi_files_under(midi_root, save_dir):
 
             with open('{}/{}{}.pickle'.format(save_dir, path.split('/')[-1], i), 'wb') as f:
                 pickle.dump(data[i:i+1025], f)
-            print('Piece {} generated.'.format(i))  
+            print('Piece {} generated.'.format(i))
 
 if __name__ == '__main__':
     preprocess_midi_files_under(
